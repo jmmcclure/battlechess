@@ -231,7 +231,12 @@ func _spawn_piece(type: int, color: int, pos: Vector2i) -> void:
 		var model_scene: PackedScene = load(model_path)
 		var model_instance: Node3D = model_scene.instantiate()
 		model_instance.name = "Model"
+		# Scale models down and lift above board — AI-generated models vary in size
+		model_instance.scale = Vector3(0.5, 0.5, 0.5)
+		model_instance.position.y = 0.0
 		piece.add_child(model_instance)
+		# Adjust Y position based on model bounds
+		_adjust_model_height(model_instance)
 		# Apply color tint
 		_apply_color_material(model_instance, color)
 	else:
@@ -328,9 +333,7 @@ func _create_board_mesh() -> void:
 	border.material_override = border_mat
 	border.name = "BoardBorder"
 	add_child(border)
-
-	# Add coordinate labels (rank numbers and file letters)
-	_create_board_labels()
+	# Board labels removed — they render as black lines on the board surface
 
 
 func _highlight_moves() -> void:
@@ -385,6 +388,18 @@ func _piece_name(type: int, color: int, pos: Vector2i) -> String:
 
 func _on_battle_finished() -> void:
 	is_interactive = true
+
+
+func _adjust_model_height(model: Node3D) -> void:
+	# Find the lowest point of the model and shift up so it sits on the board
+	var min_y: float = 0.0
+	for child in model.get_children():
+		if child is MeshInstance3D:
+			var aabb: AABB = child.get_aabb()
+			var child_min_y: float = (aabb.position.y * model.scale.y)
+			if child_min_y < min_y:
+				min_y = child_min_y
+	model.position.y = -min_y
 
 
 func _create_board_labels() -> void:
