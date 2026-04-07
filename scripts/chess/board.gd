@@ -231,12 +231,9 @@ func _spawn_piece(type: int, color: int, pos: Vector2i) -> void:
 		var model_scene: PackedScene = load(model_path)
 		var model_instance: Node3D = model_scene.instantiate()
 		model_instance.name = "Model"
-		# Scale models down and lift above board — AI-generated models vary in size
-		model_instance.scale = Vector3(0.5, 0.5, 0.5)
-		model_instance.position.y = 0.0
 		piece.add_child(model_instance)
-		# Adjust Y position based on model bounds
-		_adjust_model_height(model_instance)
+		# Fit the model to the board square
+		_fit_model_to_square(model_instance, type)
 		# Apply color tint
 		_apply_color_material(model_instance, color)
 	else:
@@ -319,21 +316,7 @@ func _create_board_mesh() -> void:
 			)
 			square.name = "Square_%d_%d" % [file, rank]
 			add_child(square)
-
-	# Board border — thin rim below the squares
-	var border := MeshInstance3D.new()
-	var border_mesh := BoxMesh.new()
-	border_mesh.size = Vector3(SQUARE_SIZE * 8 + 0.8, 0.05, SQUARE_SIZE * 8 + 0.8)
-	border.mesh = border_mesh
-	border.position.y = -0.025
-	var border_mat := StandardMaterial3D.new()
-	border_mat.albedo_color = Color(0.15, 0.12, 0.08)
-	border_mat.metallic = 0.3
-	border_mat.roughness = 0.6
-	border.material_override = border_mat
-	border.name = "BoardBorder"
-	add_child(border)
-	# Board labels removed — they render as black lines on the board surface
+	# No board border — was rendering as visible black bars
 
 
 func _highlight_moves() -> void:
@@ -391,15 +374,79 @@ func _on_battle_finished() -> void:
 
 
 func _adjust_model_height(model: Node3D) -> void:
-	# Find the lowest point of the model and shift up so it sits on the board
-	var min_y: float = 0.0
-	for child in model.get_children():
-		if child is MeshInstance3D:
-			var aabb: AABB = child.get_aabb()
-			var child_min_y: float = (aabb.position.y * model.scale.y)
-			if child_min_y < min_y:
-				min_y = child_min_y
-	model.position.y = -min_y
+	_fit_model_to_square(model, 1)
+
+
+func _fit_model_to_square(model: Node3D, type: int) -> void:
+	# Target heights per piece type — how tall they should be in world units
+	var target_heights := [0.0, 0.8, 1.6, 1.3, 1.4, 1.8, 2.0]
+	var target_h: float = target_heights[type]
+
+	# Compute the combined AABB of all mesh children recursively
+	var aabb := _get_recursive_aabb(model, model.global_transform)
+	if aabb.size.length() < 0.001:
+		# No meshes found — just set a default scale
+		model.scale = Vector3(1.5, 1.5, 1.5)
+		model.position.y = 0.0
+		return
+
+	# Scale to fit: use height as primary axis
+	var current_height: float = aabb.size.y
+	if current_height < 0.001:
+		current_height = 0.1
+
+	var scale_factor: float = target_h / current_height
+	# Clamp width so piece fits within a square (SQUARE_SIZE * 0.8 max width)
+	var max_width: float = SQUARE_SIZE * 0.7
+	var current_max_xz: float = maxf(aabb.size.x, aabb.size.z)
+	if current_max_xz * scale_factor > max_width:
+		scale_factor = max_width / current_max_xz
+
+	model.scale = Vector3(scale_factor, scale_factor, scale_factor)
+
+	# Recompute AABB after scaling to position correctly
+	# The model origin might not be at the bottom — shift so lowest point is at y=0
+	var scaled_min_y: float = aabb.position.y * scale_factor
+	model.position.y = -scaled_min_y
+
+
+func _get_recursive_aabb(node: Node, base_transform: Transform3D) -> AABB:
+	var result := AABB()
+	var first := true
+
+	if node is MeshInstance3D:
+		var mi: MeshInstance3D = node
+		if mi.mesh:
+			var mesh_aabb: AABB = mi.mesh.get_aabb()
+			# Transform to local space of base node
+			var local_transform: Transform3D = base_transform.inverse() * mi.global_transform
+			var corners: Array[Vector3] = []
+			for ix in [0, 1]:
+				for iy in [0, 1]:
+					for iz in [0, 1]:
+						var corner := Vector3(
+							mesh_aabb.position.x + mesh_aabb.size.x * ix,
+							mesh_aabb.position.y + mesh_aabb.size.y * iy,
+							mesh_aabb.position.z + mesh_aabb.size.z * iz
+						)
+						corners.append(local_transform * corner)
+			for c in corners:
+				if first:
+					result = AABB(c, Vector3.ZERO)
+					first = false
+				else:
+					result = result.expand(c)
+
+	for child in node.get_children():
+		var child_aabb := _get_recursive_aabb(child, base_transform)
+		if child_aabb.size.length() > 0.001:
+			if first:
+				result = child_aabb
+				first = false
+			else:
+				result = result.merge(child_aabb)
+
+	return result
 
 
 func _create_board_labels() -> void:
