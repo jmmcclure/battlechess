@@ -38,5 +38,16 @@ signal lobby_created(code: String)
 signal lobby_joined(code: String)
 signal remote_move_received(from: Vector2i, to: Vector2i, promotion: int)
 
+# Promotion
+signal promotion_requested(from: Vector2i, to: Vector2i, move_data: Dictionary)
+signal promotion_completed(piece_type: int)
+
+# Game actions
+signal resign_requested(color: int)
+signal draw_offered(color: int)
+signal draw_accepted()
+signal game_restarted()
+signal pause_toggled(paused: bool)
+
 # Settings
 signal settings_changed(key: String, value: Variant)

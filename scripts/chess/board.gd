@@ -185,7 +185,21 @@ func finish_capture_move(attacker: ChessPiece, defender: ChessPiece) -> void:
 
 func _promote_piece(piece: ChessPiece, new_type: int) -> void:
 	piece.piece_type = new_type
-	# TODO: Swap 3D model to match new piece type
+	# Swap the 3D model to match the new piece type
+	var old_model := piece.get_node_or_null("Model")
+	if old_model:
+		old_model.queue_free()
+	# Try to load 3D model for the promoted type
+	var type_names := ["", "pawn", "rook", "knight", "bishop", "queen", "king"]
+	var model_path := "res://assets/models/pieces/%s.glb" % type_names[new_type]
+	if ResourceLoader.exists(model_path):
+		var model_scene: PackedScene = load(model_path)
+		var model_instance: Node3D = model_scene.instantiate()
+		model_instance.name = "Model"
+		piece.add_child(model_instance)
+		_apply_color_material(model_instance, piece.piece_color)
+	else:
+		_create_placeholder_mesh(piece, new_type, piece.piece_color)
 	EventBus.piece_promoted.emit(piece, new_type)
 
 
@@ -306,6 +320,9 @@ func _create_board_mesh() -> void:
 	border.name = "BoardBorder"
 	add_child(border)
 
+	# Add coordinate labels (rank numbers and file letters)
+	_create_board_labels()
+
 
 func _highlight_moves() -> void:
 	for move in legal_moves:
@@ -359,3 +376,41 @@ func _piece_name(type: int, color: int, pos: Vector2i) -> String:
 
 func _on_battle_finished() -> void:
 	is_interactive = true
+
+
+func _create_board_labels() -> void:
+	var file_letters := ["a", "b", "c", "d", "e", "f", "g", "h"]
+	var label_offset := SQUARE_SIZE * 4 + 0.6
+
+	for i in range(BOARD_SIZE):
+		# File labels (a-h) along bottom and top edges
+		for side in [-1, 1]:
+			var file_label := Label3D.new()
+			file_label.text = file_letters[i]
+			file_label.font_size = 48
+			file_label.pixel_size = 0.01
+			file_label.modulate = Color(0.6, 0.55, 0.5)
+			file_label.position = Vector3(
+				(i - 3.5) * SQUARE_SIZE,
+				0.01,
+				side * label_offset
+			)
+			file_label.rotation_degrees = Vector3(-90, 0, 0)
+			file_label.name = "FileLabel_%s_%d" % [file_letters[i], side]
+			add_child(file_label)
+
+		# Rank labels (1-8) along left and right edges
+		for side in [-1, 1]:
+			var rank_label := Label3D.new()
+			rank_label.text = str(i + 1)
+			rank_label.font_size = 48
+			rank_label.pixel_size = 0.01
+			rank_label.modulate = Color(0.6, 0.55, 0.5)
+			rank_label.position = Vector3(
+				side * label_offset,
+				0.01,
+				(i - 3.5) * SQUARE_SIZE
+			)
+			rank_label.rotation_degrees = Vector3(-90, 0, 0)
+			rank_label.name = "RankLabel_%d_%d" % [i + 1, side]
+			add_child(rank_label)

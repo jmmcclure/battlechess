@@ -54,6 +54,8 @@ var side_to_move: int = PieceColor.WHITE
 
 var history_stack: Array[Dictionary] = []
 
+var position_history: Dictionary = {}  # FEN position key -> occurrence count
+
 # =============================================================================
 # Coordinate helpers
 # =============================================================================
@@ -104,6 +106,7 @@ func clear_board() -> void:
 	fullmove_number = 1
 	side_to_move = PieceColor.WHITE
 	history_stack.clear()
+	position_history.clear()
 
 # =============================================================================
 # FEN
@@ -312,9 +315,20 @@ func make_move(move: Dictionary) -> void:
 		fullmove_number += 1
 	side_to_move = 1 - side_to_move
 
+	# Track position for threefold repetition
+	var pos_key := _position_key()
+	position_history[pos_key] = position_history.get(pos_key, 0) + 1
+
 func unmake_move(move: Dictionary) -> void:
 	if history_stack.is_empty():
 		return
+
+	# Decrement position count before undoing
+	var pos_key := _position_key()
+	if position_history.has(pos_key):
+		position_history[pos_key] -= 1
+		if position_history[pos_key] <= 0:
+			position_history.erase(pos_key)
 
 	var saved: Dictionary = history_stack.pop_back()
 	var from_sq: int = move["from_sq"]
@@ -467,7 +481,22 @@ func is_draw() -> bool:
 		return true
 	if _is_insufficient_material():
 		return true
+	if is_threefold_repetition():
+		return true
 	return false
+
+
+func is_threefold_repetition() -> bool:
+	var pos_key := _position_key()
+	return position_history.get(pos_key, 0) >= 3
+
+
+func _position_key() -> String:
+	# Board layout + side to move + castling + en passant (no clocks)
+	var fen := to_fen()
+	var parts := fen.split(" ")
+	# parts[0]=board, [1]=side, [2]=castling, [3]=en_passant
+	return "%s %s %s %s" % [parts[0], parts[1], parts[2], parts[3]]
 
 func _is_insufficient_material() -> bool:
 	var white_pieces: Array[int] = []

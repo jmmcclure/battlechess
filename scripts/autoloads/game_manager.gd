@@ -15,6 +15,9 @@ var gore_enabled: bool = true
 var animation_speed: float = 1.0
 var battle_skip_enabled: bool = true
 
+var last_winner: int = -1
+var last_result: String = ""
+
 
 func start_game(mode: GameMode) -> void:
 	current_mode = mode
@@ -24,6 +27,8 @@ func start_game(mode: GameMode) -> void:
 
 func end_game(result: String, winner: int) -> void:
 	current_state = GameState.GAME_OVER
+	last_result = result
+	last_winner = winner
 	EventBus.game_ended.emit(result, winner)
 
 
@@ -52,3 +57,11 @@ func is_playing() -> bool:
 
 func is_ai_turn(color: int) -> bool:
 	return current_mode == GameMode.VS_AI and color == 1  # Black = AI
+
+
+func restart_game() -> void:
+	last_winner = -1
+	last_result = ""
+	current_state = GameState.PLAYING
+	EventBus.game_restarted.emit()
+	EventBus.game_started.emit(GameMode.keys()[current_mode])

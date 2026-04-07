@@ -6,6 +6,8 @@ var ai: AIPlayer
 var notation: ChessNotation
 var current_move_data: Dictionary = {}
 
+var ai_thread: Thread = null
+
 @onready var chess_board: ChessBoard = $ChessBoard
 @onready var battle_manager: BattleManager = $BattleManager
 @onready var game_camera: Camera3D = $GameCamera
@@ -116,6 +118,59 @@ func _on_move_requested(from: Vector2i, to: Vector2i) -> void:
 	if move_data.is_empty():
 		return
 
+	var flags: int = move_data.get("flags", 0)
+
+	# Check for promotion
+	if flags & 240:  # 16|32|64|128 — any promotion flag
+		if GameManager.is_ai_turn(engine.side_to_move):
+			# AI auto-selects queen
+			_execute_move_with_promotion(from, to, move_data, ChessEngine.PieceType.QUEEN)
+		else:
+			_show_promotion_dialog(from, to, move_data)
+		return
+
+	_execute_confirmed_move(from, to, move_data)
+
+
+func _show_promotion_dialog(from: Vector2i, to: Vector2i, move_data: Dictionary) -> void:
+	var dialog_scene := load("res://scenes/ui/promotion_dialog.tscn")
+	if not dialog_scene:
+		# Fallback: auto-queen if scene missing
+		_execute_move_with_promotion(from, to, move_data, ChessEngine.PieceType.QUEEN)
+		return
+	var dialog: Control = dialog_scene.instantiate()
+	$UI.add_child(dialog)
+	chess_board.is_interactive = false
+
+	var choice: int = await dialog.promotion_selected
+	dialog.queue_free()
+
+	_execute_move_with_promotion(from, to, move_data, choice)
+
+
+func _execute_move_with_promotion(from: Vector2i, to: Vector2i, move_data: Dictionary, piece_type: int) -> void:
+	# Find the legal move matching the chosen promotion type
+	var flag_map := {
+		ChessEngine.PieceType.QUEEN: ChessEngine.MoveFlag.PROMOTE_QUEEN,
+		ChessEngine.PieceType.ROOK: ChessEngine.MoveFlag.PROMOTE_ROOK,
+		ChessEngine.PieceType.BISHOP: ChessEngine.MoveFlag.PROMOTE_BISHOP,
+		ChessEngine.PieceType.KNIGHT: ChessEngine.MoveFlag.PROMOTE_KNIGHT,
+	}
+	var desired_flag: int = flag_map.get(piece_type, ChessEngine.MoveFlag.PROMOTE_QUEEN)
+
+	var from_sq := from.y * 8 + from.x
+	var to_sq := to.y * 8 + to.x
+	var legal_moves: Array = engine.get_legal_moves()
+	for move in legal_moves:
+		if move["from_sq"] == from_sq and move["to_sq"] == to_sq and (move["flags"] & desired_flag):
+			_execute_confirmed_move(from, to, move)
+			return
+
+	# Fallback: use the original move_data
+	_execute_confirmed_move(from, to, move_data)
+
+
+func _execute_confirmed_move(from: Vector2i, to: Vector2i, move_data: Dictionary) -> void:
 	# Record notation before making the move
 	var san := notation.add_move(move_data, engine)
 	EventBus.move_added_to_history.emit(san)
@@ -147,16 +202,20 @@ func _check_game_state() -> void:
 		var winner: int = 1 - loser
 		EventBus.checkmate_declared.emit(loser)
 		GameManager.end_game("checkmate", winner)
+		_show_game_over_screen()
 		return
 
 	if engine.is_stalemate():
 		EventBus.stalemate_declared.emit()
 		GameManager.end_game("stalemate", -1)
+		_show_game_over_screen()
 		return
 
 	if engine.is_draw():
-		EventBus.draw_declared.emit("50-move rule or insufficient material")
+		var reason := "threefold repetition" if engine.is_threefold_repetition() else "50-move rule or insufficient material"
+		EventBus.draw_declared.emit(reason)
 		GameManager.end_game("draw", -1)
+		_show_game_over_screen()
 		return
 
 	if engine.is_in_check(engine.side_to_move):
@@ -182,8 +241,8 @@ func _do_ai_move() -> void:
 	chess_board.is_interactive = false
 
 	# Run AI in a thread to keep UI responsive
-	var thread := Thread.new()
-	thread.start(_ai_think)
+	ai_thread = Thread.new()
+	ai_thread.start(_ai_think)
 
 
 func _ai_think() -> void:
@@ -194,6 +253,11 @@ func _ai_think() -> void:
 
 
 func _ai_move_ready(move: Dictionary) -> void:
+	# Clean up the AI thread
+	if ai_thread:
+		ai_thread.wait_to_finish()
+		ai_thread = null
+
 	ai_thinking = false
 	if move.is_empty():
 		return
@@ -205,3 +269,22 @@ func _ai_move_ready(move: Dictionary) -> void:
 	await get_tree().create_timer(0.5).timeout
 
 	_on_move_requested(from, to)
+
+
+func _show_game_over_screen() -> void:
+	var scene := load("res://scenes/ui/game_over_screen.tscn")
+	if scene:
+		var screen: Control = scene.instantiate()
+		$UI.add_child(screen)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		if GameManager.current_state == GameManager.GameState.PLAYING or \
+				GameManager.current_state == GameManager.GameState.BATTLE_ANIM:
+			var pause_scene := load("res://scenes/ui/pause_menu.tscn")
+			if pause_scene:
+				var menu: Control = pause_scene.instantiate()
+				$UI.add_child(menu)
+				GameManager.pause_game()
+				EventBus.pause_toggled.emit(true)

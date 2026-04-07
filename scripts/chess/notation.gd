@@ -19,37 +19,35 @@ func add_move(move: Dictionary, engine: RefCounted) -> String:
 
 
 func move_to_san(move: Dictionary, engine: RefCounted) -> String:
+	# Delegate to engine's move_to_san which handles disambiguation and check/checkmate
+	if engine and engine.has_method("move_to_san"):
+		return engine.move_to_san(move)
+
+	# Fallback: simplified SAN without check/checkmate indicators
+	return _fallback_move_to_san(move)
+
+
+func _fallback_move_to_san(move: Dictionary) -> String:
 	var from_sq: int = move["from_sq"]
 	var to_sq: int = move["to_sq"]
-	var piece_type: int = move.get("piece_moved", 0) & 7
+	var pt: int = move.get("piece_moved", 0) & 7
 	var flags: int = move.get("flags", 0)
 	var captured: int = move.get("piece_captured", 0)
 	var result := ""
 
-	# Castling
-	if flags & 4:  # Kingside
+	if flags & 4:
 		result = "O-O"
-	elif flags & 8:  # Queenside
+	elif flags & 8:
 		result = "O-O-O"
 	else:
-		# Piece letter (not for pawns)
 		var piece_letters := ["", "", "R", "N", "B", "Q", "K"]
-		if piece_type > 1:
-			result += piece_letters[piece_type]
-
-		# Disambiguation would go here (checking if multiple pieces of same type can reach target)
-		# Simplified: include file for pawn captures
-		if piece_type == 1 and captured > 0:
+		if pt > 1:
+			result += piece_letters[pt]
+		if pt == 1 and captured > 0:
 			result += _file_letter(from_sq % 8)
-
-		# Capture indicator
 		if captured > 0:
 			result += "x"
-
-		# Target square
 		result += _square_name(to_sq)
-
-		# Promotion
 		if flags & 16:
 			result += "=Q"
 		elif flags & 32:
@@ -58,9 +56,6 @@ func move_to_san(move: Dictionary, engine: RefCounted) -> String:
 			result += "=B"
 		elif flags & 128:
 			result += "=N"
-
-	# Check/checkmate indicators (would need engine state after move)
-	# These get appended externally if needed
 
 	return result
 
