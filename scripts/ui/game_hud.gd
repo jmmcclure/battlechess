@@ -29,6 +29,9 @@ func _ready() -> void:
 	status_label.text = ""
 	_update_turn_display(0)
 
+	# Add resign and draw offer buttons at the bottom of the HUD
+	_create_action_buttons()
+
 
 func _on_turn_changed(color: int) -> void:
 	_update_turn_display(color)
@@ -94,3 +97,42 @@ func _on_battle_started(_attacker: Node3D, _defender: Node3D) -> void:
 
 func _on_battle_finished() -> void:
 	skip_button.visible = false
+
+
+func _create_action_buttons() -> void:
+	var vbox: VBoxContainer = $MarginContainer/VBoxContainer
+
+	var sep := HSeparator.new()
+	vbox.add_child(sep)
+
+	var action_row := HBoxContainer.new()
+	action_row.name = "ActionRow"
+	action_row.theme_override_constants = {}
+
+	var resign_btn := Button.new()
+	resign_btn.text = "⚑ Resign"
+	resign_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	resign_btn.custom_minimum_size.y = 36
+	resign_btn.add_theme_font_size_override("font_size", 14)
+	resign_btn.add_theme_color_override("font_color", Color(0.8, 0.3, 0.3))
+	resign_btn.pressed.connect(func():
+		EventBus.resign_requested.emit(0)
+		GameManager.end_game("resign", 1)
+	)
+	action_row.add_child(resign_btn)
+
+	var draw_btn := Button.new()
+	draw_btn.text = "½ Draw"
+	draw_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	draw_btn.custom_minimum_size.y = 36
+	draw_btn.add_theme_font_size_override("font_size", 14)
+	draw_btn.add_theme_color_override("font_color", Color(0.6, 0.6, 0.5))
+	draw_btn.pressed.connect(func():
+		EventBus.draw_offered.emit(0)
+		# In local/AI mode, auto-accept draw
+		if GameManager.current_mode != GameManager.GameMode.ONLINE_MP:
+			GameManager.end_game("draw", -1)
+	)
+	action_row.add_child(draw_btn)
+
+	vbox.add_child(action_row)

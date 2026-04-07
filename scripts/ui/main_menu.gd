@@ -19,7 +19,6 @@ func _ready() -> void:
 
 
 func _setup_theme() -> void:
-	# Dark medieval theme
 	var bg := ColorRect.new()
 	bg.color = Color(0.03, 0.03, 0.05)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -27,6 +26,16 @@ func _setup_theme() -> void:
 	bg.name = "Background"
 	add_child(bg)
 	move_child(bg, 0)
+
+	# Add subtitle
+	var subtitle := Label.new()
+	subtitle.text = "A Dark Medieval Chess Experience"
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.add_theme_color_override("font_color", Color(0.5, 0.45, 0.4))
+	subtitle.add_theme_font_size_override("font_size", 16)
+	subtitle.name = "Subtitle"
+	$VBoxContainer.add_child(subtitle)
+	$VBoxContainer.move_child(subtitle, 1)  # After title
 
 
 func _on_vs_ai() -> void:
