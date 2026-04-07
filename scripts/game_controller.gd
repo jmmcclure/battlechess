@@ -61,7 +61,7 @@ func _setup_lighting() -> void:
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	environment.ambient_light_color = Color(0.15, 0.12, 0.1)
 	environment.ambient_light_energy = 0.4
-	environment.tonemap_mode = Environment.TONE_MAP_ACES
+	environment.tonemap_mode = 3  # ACES
 	environment.glow_enabled = true
 	environment.glow_intensity = 0.3
 	environment.fog_enabled = true

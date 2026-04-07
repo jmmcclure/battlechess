@@ -274,11 +274,11 @@ func _apply_color_material(model: Node3D, color: int) -> void:
 
 	for child in model.get_children():
 		if child is MeshInstance3D:
-			var mat := child.get_active_material(0)
-			if mat is StandardMaterial3D:
-				mat = mat.duplicate()
-				mat.albedo_color = mat.albedo_color.lerp(tint, 0.5)
-				child.material_override = mat
+			var base_mat: Material = child.get_active_material(0)
+			if base_mat is StandardMaterial3D:
+				var std_mat: StandardMaterial3D = base_mat.duplicate() as StandardMaterial3D
+				std_mat.albedo_color = std_mat.albedo_color.lerp(tint, 0.5)
+				child.material_override = std_mat
 
 
 func _create_board_mesh() -> void:
