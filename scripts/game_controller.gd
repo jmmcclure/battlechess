@@ -35,6 +35,12 @@ func _ready() -> void:
 	_setup_lighting()
 	_setup_environment()
 
+	# Pre-instantiate pause menu (it handles its own ESC toggle)
+	var pause_scene := load("res://scenes/ui/pause_menu.tscn")
+	if pause_scene:
+		var pause_menu: Control = pause_scene.instantiate()
+		$UI.add_child(pause_menu)
+
 
 func _setup_camera() -> void:
 	game_camera.position = Vector3(0, 14, 10)
@@ -141,6 +147,7 @@ func _show_promotion_dialog(from: Vector2i, to: Vector2i, move_data: Dictionary)
 	var dialog: Control = dialog_scene.instantiate()
 	$UI.add_child(dialog)
 	chess_board.is_interactive = false
+	dialog.show_dialog()
 
 	var choice: int = await dialog.promotion_selected
 	dialog.queue_free()
@@ -276,15 +283,3 @@ func _show_game_over_screen() -> void:
 	if scene:
 		var screen: Control = scene.instantiate()
 		$UI.add_child(screen)
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel"):
-		if GameManager.current_state == GameManager.GameState.PLAYING or \
-				GameManager.current_state == GameManager.GameState.BATTLE_ANIM:
-			var pause_scene := load("res://scenes/ui/pause_menu.tscn")
-			if pause_scene:
-				var menu: Control = pause_scene.instantiate()
-				$UI.add_child(menu)
-				GameManager.pause_game()
-				EventBus.pause_toggled.emit(true)

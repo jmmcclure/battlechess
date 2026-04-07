@@ -40,9 +40,7 @@ func _on_local_mp() -> void:
 
 
 func _on_online_mp() -> void:
-	GameManager.start_game(GameManager.GameMode.ONLINE_MP)
-	# TODO: Show lobby screen first
-	_go_to_game()
+	get_tree().change_scene_to_file("res://scenes/ui/lobby_screen.tscn")
 
 
 func _on_settings() -> void:

@@ -4,6 +4,9 @@
 # Exported builds
 export/
 
+# Node.js
+server/node_modules/
+
 # OS junk
 .DS_Store
 Thumbs.db
