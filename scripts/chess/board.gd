@@ -28,7 +28,6 @@ var camera: Camera3D
 
 
 func _ready() -> void:
-	camera = get_viewport().get_camera_3d()
 	_create_board_mesh()
 	EventBus.battle_finished.connect(_on_battle_finished)
 
@@ -37,7 +36,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not is_interactive:
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		_handle_click(event.position)
+		# Get camera fresh each click in case it changed
+		camera = get_viewport().get_camera_3d()
+		if camera:
+			_handle_click(event.position)
 
 
 func initialize(chess_engine: RefCounted) -> void:
@@ -268,17 +270,24 @@ func _create_placeholder_mesh(piece: ChessPiece, type: int, color: int) -> void:
 func _apply_color_material(model: Node3D, color: int) -> void:
 	var tint: Color
 	if color == 0:
-		tint = Color(0.9, 0.85, 0.8)  # Silver/steel
+		tint = Color(0.85, 0.82, 0.78)  # Bright silver/steel for white
 	else:
-		tint = Color(0.12, 0.1, 0.08)  # Dark obsidian
+		tint = Color(0.1, 0.08, 0.06)  # Dark obsidian for black
 
-	for child in model.get_children():
-		if child is MeshInstance3D:
-			var base_mat: Material = child.get_active_material(0)
-			if base_mat is StandardMaterial3D:
-				var std_mat: StandardMaterial3D = base_mat.duplicate() as StandardMaterial3D
-				std_mat.albedo_color = std_mat.albedo_color.lerp(tint, 0.5)
-				child.material_override = std_mat
+	_tint_recursive(model, tint, color)
+
+
+func _tint_recursive(node: Node, tint: Color, color: int) -> void:
+	if node is MeshInstance3D:
+		var mesh_node: MeshInstance3D = node
+		# Create a new material with the tint color
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = tint
+		mat.metallic = 0.4 if color == 0 else 0.2
+		mat.roughness = 0.5 if color == 0 else 0.7
+		mesh_node.material_override = mat
+	for child in node.get_children():
+		_tint_recursive(child, tint, color)
 
 
 func _create_board_mesh() -> void:
@@ -306,16 +315,16 @@ func _create_board_mesh() -> void:
 			square.name = "Square_%d_%d" % [file, rank]
 			add_child(square)
 
-	# Board border
+	# Board border — thin rim below the squares
 	var border := MeshInstance3D.new()
 	var border_mesh := BoxMesh.new()
-	border_mesh.size = Vector3(SQUARE_SIZE * 8 + 0.5, 0.3, SQUARE_SIZE * 8 + 0.5)
+	border_mesh.size = Vector3(SQUARE_SIZE * 8 + 0.8, 0.05, SQUARE_SIZE * 8 + 0.8)
 	border.mesh = border_mesh
-	border.position.y = -0.15
+	border.position.y = -0.025
 	var border_mat := StandardMaterial3D.new()
-	border_mat.albedo_color = Color(0.08, 0.06, 0.05)
-	border_mat.metallic = 0.2
-	border_mat.roughness = 0.7
+	border_mat.albedo_color = Color(0.15, 0.12, 0.08)
+	border_mat.metallic = 0.3
+	border_mat.roughness = 0.6
 	border.material_override = border_mat
 	border.name = "BoardBorder"
 	add_child(border)
