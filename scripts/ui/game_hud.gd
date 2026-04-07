@@ -107,7 +107,6 @@ func _create_action_buttons() -> void:
 
 	var action_row := HBoxContainer.new()
 	action_row.name = "ActionRow"
-	action_row.theme_override_constants = {}
 
 	var resign_btn := Button.new()
 	resign_btn.text = "⚑ Resign"
