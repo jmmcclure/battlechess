@@ -1,0 +1,16 @@
+# Godot generated
+.godot/
+
+# Exported builds
+export/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+*.code-workspace
+
+# Status files from AI generation
+*_status.json

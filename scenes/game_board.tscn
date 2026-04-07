@@ -1,0 +1,128 @@
+[gd_scene load_steps=5 format=3 uid="uid://game_board_scene"]
+
+[ext_resource type="Script" path="res://scripts/game_controller.gd" id="1_controller"]
+[ext_resource type="Script" path="res://scripts/chess/board.gd" id="2_board"]
+[ext_resource type="Script" path="res://scripts/battle/battle_manager.gd" id="3_battle"]
+[ext_resource type="Script" path="res://scripts/ui/game_hud.gd" id="4_hud"]
+
+[node name="GameController" type="Node3D"]
+script = ExtResource("1_controller")
+
+[node name="ChessBoard" type="Node3D" parent="."]
+script = ExtResource("2_board")
+
+[node name="BoardMesh" type="Node3D" parent="ChessBoard"]
+
+[node name="BattleManager" type="Node3D" parent="."]
+script = ExtResource("3_battle")
+
+[node name="GameCamera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.5736, -0.8192, 0, 0.8192, 0.5736, 0, 14, 10)
+current = true
+fov = 50.0
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866, -0.354, 0.354, 0, 0.707, 0.707, -0.5, -0.612, 0.612, 0, 10, 0)
+light_energy = 0.6
+shadow_enabled = true
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="HUD" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("4_hud")
+
+[node name="MarginContainer" type="MarginContainer" parent="UI/HUD"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -300.0
+offset_bottom = 600.0
+grow_horizontal = 0
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="PanelBG" type="Panel" parent="UI/HUD/MarginContainer"]
+layout_mode = 2
+self_modulate = Color(0.05, 0.05, 0.08, 0.8)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/HUD/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TurnLabel" type="Label" parent="UI/HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.85, 0.8, 1)
+theme_override_font_sizes/font_size = 24
+text = "White to move"
+horizontal_alignment = 1
+
+[node name="Separator1" type="HSeparator" parent="UI/HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="MovesLabel" type="Label" parent="UI/HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.65, 0.6, 1)
+theme_override_font_sizes/font_size = 14
+text = "MOVES"
+horizontal_alignment = 1
+
+[node name="MoveList" type="RichTextLabel" parent="UI/HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 200)
+theme_override_colors/default_color = Color(0.8, 0.75, 0.7, 1)
+theme_override_font_sizes/normal_font_size = 16
+bbcode_enabled = true
+scroll_following = true
+
+[node name="Separator2" type="HSeparator" parent="UI/HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="CapturedLabel" type="Label" parent="UI/HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.65, 0.6, 1)
+theme_override_font_sizes/font_size = 14
+text = "CAPTURED"
+horizontal_alignment = 1
+
+[node name="WhiteCaptures" type="HBoxContainer" parent="UI/HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="BlackCaptures" type="HBoxContainer" parent="UI/HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Separator3" type="HSeparator" parent="UI/HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="StatusLabel" type="Label" parent="UI/HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.8, 0.2, 1)
+theme_override_font_sizes/font_size = 20
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="SkipButton" type="Button" parent="UI/HUD"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -75.0
+offset_top = -60.0
+offset_right = 75.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 18
+text = "SKIP ⏭"
+visible = false

@@ -1,0 +1,68 @@
+[gd_scene load_steps=2 format=3 uid="uid://main_menu_scene"]
+
+[ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_menu"]
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_menu")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -200.0
+offset_right = 200.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="TitleLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.75, 0.55, 1)
+theme_override_font_sizes/font_size = 48
+text = "BATTLE CHESS"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 40)
+
+[node name="VsAIButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 50)
+theme_override_font_sizes/font_size = 22
+text = "⚔  VS AI"
+
+[node name="LocalMPButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 50)
+theme_override_font_sizes/font_size = 22
+text = "👥  LOCAL MULTIPLAYER"
+
+[node name="OnlineMPButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 50)
+theme_override_font_sizes/font_size = 22
+text = "🌐  ONLINE MULTIPLAYER"
+
+[node name="SettingsButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 50)
+theme_override_font_sizes/font_size = 22
+text = "⚙  SETTINGS"
+
+[node name="QuitButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 50)
+theme_override_font_sizes/font_size = 22
+text = "🚪  QUIT"
