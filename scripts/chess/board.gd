@@ -234,8 +234,11 @@ func _spawn_piece(type: int, color: int, pos: Vector2i) -> void:
 		var model_instance: Node3D = model_scene.instantiate()
 		model_instance.name = "Model"
 		piece.add_child(model_instance)
-		# Fit the model to the board square
-		_fit_model_to_square(model_instance, type)
+		# Apply uniform scale per piece type — tuned manually
+		var piece_scales := [0.0, 1.8, 3.0, 2.8, 2.8, 3.5, 3.8]
+		var s: float = piece_scales[type]
+		model_instance.scale = Vector3(s, s, s)
+		model_instance.position.y = 0.1  # Slight lift above board
 		# Apply color tint
 		_apply_color_material(model_instance, color)
 	else:

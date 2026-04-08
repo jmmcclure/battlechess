@@ -80,59 +80,170 @@ func _setup_lighting() -> void:
 
 
 func _setup_environment() -> void:
-	# Torches around the board — warm flickering light
-	var torch_positions := [
-		Vector3(-10, 4, -10), Vector3(10, 4, -10),
-		Vector3(-10, 4, 10), Vector3(10, 4, 10),
-		Vector3(-10, 4, 0), Vector3(10, 4, 0),  # Mid-side torches
-	]
-	for i in range(torch_positions.size()):
-		var torch_light := OmniLight3D.new()
-		torch_light.position = torch_positions[i]
-		torch_light.light_color = Color(1.0, 0.65, 0.25)
-		torch_light.light_energy = 2.5
-		torch_light.omni_range = 14.0
-		torch_light.omni_attenuation = 1.2
-		torch_light.shadow_enabled = true
-		torch_light.name = "Torch_%d" % i
-		add_child(torch_light)
-
-	# Fill light from behind camera — subtle blue moonlight
-	var fill_light := DirectionalLight3D.new()
-	fill_light.rotation_degrees = Vector3(-20, 180, 0)
-	fill_light.light_energy = 0.15
-	fill_light.light_color = Color(0.6, 0.7, 0.9)
-	fill_light.name = "FillLight"
-	add_child(fill_light)
-
-	# Stone floor beneath the board
+	# === Castle floor — large stone flagstones ===
 	var floor_mesh := MeshInstance3D.new()
-	var plane := PlaneMesh.new()
-	plane.size = Vector2(50, 50)
-	floor_mesh.mesh = plane
+	var floor_plane := PlaneMesh.new()
+	floor_plane.size = Vector2(60, 60)
+	floor_mesh.mesh = floor_plane
 	floor_mesh.position.y = -0.1
 	var floor_mat := StandardMaterial3D.new()
-	floor_mat.albedo_color = Color(0.06, 0.05, 0.04)
-	floor_mat.roughness = 0.85
-	floor_mat.metallic = 0.05
+	floor_mat.albedo_color = Color(0.12, 0.1, 0.08)
+	floor_mat.roughness = 0.9
+	floor_mat.metallic = 0.02
 	floor_mesh.material_override = floor_mat
-	floor_mesh.name = "Floor"
+	floor_mesh.name = "CastleFloor"
 	add_child(floor_mesh)
 
-	# Board frame — decorative border around the playing surface
-	var frame_size: float = 2.0 * 8 + 1.2  # SQUARE_SIZE * 8 + border
+	# === Stone tile grid on floor for castle look ===
+	var tile_mat_dark := StandardMaterial3D.new()
+	tile_mat_dark.albedo_color = Color(0.08, 0.07, 0.06)
+	tile_mat_dark.roughness = 0.85
+	var tile_mat_light := StandardMaterial3D.new()
+	tile_mat_light.albedo_color = Color(0.14, 0.12, 0.1)
+	tile_mat_light.roughness = 0.85
+	for tx in range(-6, 7):
+		for tz in range(-6, 7):
+			# Skip tiles under the chess board
+			if abs(tx) <= 4 and abs(tz) <= 4:
+				continue
+			var tile := MeshInstance3D.new()
+			var tp := PlaneMesh.new()
+			tp.size = Vector2(2.0, 2.0)
+			tile.mesh = tp
+			tile.position = Vector3(tx * 2.1, -0.09, tz * 2.1)
+			tile.material_override = tile_mat_dark if (tx + tz) % 2 == 0 else tile_mat_light
+			tile.name = "FloorTile_%d_%d" % [tx + 6, tz + 6]
+			add_child(tile)
+
+	# === Board frame — ornate wooden border ===
+	var board_extent: float = 2.0 * 8  # SQUARE_SIZE * BOARD_SIZE
 	var frame := MeshInstance3D.new()
 	var frame_mesh := BoxMesh.new()
-	frame_mesh.size = Vector3(frame_size, 0.15, frame_size)
+	frame_mesh.size = Vector3(board_extent + 1.5, 0.2, board_extent + 1.5)
 	frame.mesh = frame_mesh
-	frame.position.y = -0.08
+	frame.position.y = -0.1
 	var frame_mat := StandardMaterial3D.new()
-	frame_mat.albedo_color = Color(0.18, 0.12, 0.06)
-	frame_mat.roughness = 0.5
-	frame_mat.metallic = 0.15
+	frame_mat.albedo_color = Color(0.2, 0.13, 0.06)
+	frame_mat.roughness = 0.45
+	frame_mat.metallic = 0.1
 	frame.material_override = frame_mat
 	frame.name = "BoardFrame"
 	add_child(frame)
+
+	# === Castle walls ===
+	var wall_color := Color(0.14, 0.12, 0.1)
+	var wall_height: float = 12.0
+	var wall_thickness: float = 1.0
+	var wall_distance: float = 18.0
+
+	# Back wall (behind black pieces)
+	_build_wall(Vector3(0, wall_height / 2.0, -wall_distance),
+		Vector3(wall_distance * 2.5, wall_height, wall_thickness), wall_color, "BackWall")
+	# Left wall
+	_build_wall(Vector3(-wall_distance, wall_height / 2.0, 0),
+		Vector3(wall_thickness, wall_height, wall_distance * 2.5), wall_color, "LeftWall")
+	# Right wall
+	_build_wall(Vector3(wall_distance, wall_height / 2.0, 0),
+		Vector3(wall_thickness, wall_height, wall_distance * 2.5), wall_color, "RightWall")
+
+	# === Wall sconce torches ===
+	var sconce_positions := [
+		# Back wall sconces
+		Vector3(-8, 5, -wall_distance + 1.0),
+		Vector3(0, 5, -wall_distance + 1.0),
+		Vector3(8, 5, -wall_distance + 1.0),
+		# Left wall sconces
+		Vector3(-wall_distance + 1.0, 5, -6),
+		Vector3(-wall_distance + 1.0, 5, 6),
+		# Right wall sconces
+		Vector3(wall_distance - 1.0, 5, -6),
+		Vector3(wall_distance - 1.0, 5, 6),
+	]
+	for i in range(sconce_positions.size()):
+		# Torch bracket (small box)
+		var bracket := MeshInstance3D.new()
+		var bracket_mesh := BoxMesh.new()
+		bracket_mesh.size = Vector3(0.3, 0.6, 0.3)
+		bracket.mesh = bracket_mesh
+		bracket.position = sconce_positions[i] - Vector3(0, 0.3, 0)
+		var bracket_mat := StandardMaterial3D.new()
+		bracket_mat.albedo_color = Color(0.15, 0.1, 0.05)
+		bracket_mat.metallic = 0.6
+		bracket_mat.roughness = 0.4
+		bracket.material_override = bracket_mat
+		bracket.name = "TorchBracket_%d" % i
+		add_child(bracket)
+
+		# Warm torch light
+		var torch := OmniLight3D.new()
+		torch.position = sconce_positions[i]
+		torch.light_color = Color(1.0, 0.6, 0.2)
+		torch.light_energy = 3.0
+		torch.omni_range = 16.0
+		torch.omni_attenuation = 1.3
+		torch.shadow_enabled = true
+		torch.name = "Sconce_%d" % i
+		add_child(torch)
+
+	# === Ceiling (dark, barely visible) ===
+	var ceiling := MeshInstance3D.new()
+	var ceiling_plane := PlaneMesh.new()
+	ceiling_plane.size = Vector2(50, 50)
+	ceiling.mesh = ceiling_plane
+	ceiling.position.y = wall_height
+	ceiling.rotation_degrees.x = 180
+	var ceiling_mat := StandardMaterial3D.new()
+	ceiling_mat.albedo_color = Color(0.04, 0.03, 0.03)
+	ceiling_mat.roughness = 1.0
+	ceiling.material_override = ceiling_mat
+	ceiling.name = "Ceiling"
+	add_child(ceiling)
+
+	# === Stone pillars at corners ===
+	var pillar_positions := [
+		Vector3(-wall_distance, 0, -wall_distance),
+		Vector3(wall_distance, 0, -wall_distance),
+		Vector3(-wall_distance, 0, wall_distance),
+		Vector3(wall_distance, 0, wall_distance),
+	]
+	for i in range(pillar_positions.size()):
+		var pillar := MeshInstance3D.new()
+		var cyl := CylinderMesh.new()
+		cyl.top_radius = 0.6
+		cyl.bottom_radius = 0.8
+		cyl.height = wall_height
+		pillar.mesh = cyl
+		pillar.position = pillar_positions[i] + Vector3(0, wall_height / 2.0, 0)
+		var pillar_mat := StandardMaterial3D.new()
+		pillar_mat.albedo_color = Color(0.16, 0.14, 0.12)
+		pillar_mat.roughness = 0.8
+		pillar_mat.metallic = 0.05
+		pillar.material_override = pillar_mat
+		pillar.name = "Pillar_%d" % i
+		add_child(pillar)
+
+	# Fill light — subtle blue moonlight from behind camera
+	var fill_light := DirectionalLight3D.new()
+	fill_light.rotation_degrees = Vector3(-20, 180, 0)
+	fill_light.light_energy = 0.12
+	fill_light.light_color = Color(0.5, 0.6, 0.8)
+	fill_light.name = "MoonlightFill"
+	add_child(fill_light)
+
+
+func _build_wall(pos: Vector3, size: Vector3, color: Color, wall_name: String) -> void:
+	var wall := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = size
+	wall.mesh = box
+	wall.position = pos
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.roughness = 0.9
+	mat.metallic = 0.02
+	wall.material_override = mat
+	wall.name = wall_name
+	add_child(wall)
 
 
 func _on_game_started(_mode: String) -> void:
