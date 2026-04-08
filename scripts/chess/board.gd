@@ -235,7 +235,7 @@ func _spawn_piece(type: int, color: int, pos: Vector2i) -> void:
 		model_instance.name = "Model"
 		piece.add_child(model_instance)
 		# Apply uniform scale per piece type — tuned manually
-		var piece_scales := [0.0, 1.8, 3.0, 2.8, 2.8, 3.1, 3.1]
+		var piece_scales := [0.0, 1.8, 3.0, 2.6, 2.6, 3.1, 3.1]
 		# Y offset per piece type — lifts model so bottom sits on board
 		var piece_y_offsets := [0.0, 1.0, 1.4, 1.4, 1.4, 1.4, 1.4]
 		var s: float = piece_scales[type]
