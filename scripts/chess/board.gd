@@ -236,9 +236,11 @@ func _spawn_piece(type: int, color: int, pos: Vector2i) -> void:
 		piece.add_child(model_instance)
 		# Apply uniform scale per piece type — tuned manually
 		var piece_scales := [0.0, 1.8, 3.0, 2.8, 2.8, 3.5, 3.8]
+		# Y offset per piece type — lifts model so bottom sits on board
+		var piece_y_offsets := [0.0, 1.0, 1.8, 1.6, 1.6, 2.0, 2.2]
 		var s: float = piece_scales[type]
 		model_instance.scale = Vector3(s, s, s)
-		model_instance.position.y = 0.3  # Lift above board surface
+		model_instance.position.y = piece_y_offsets[type]
 		# Apply color tint
 		_apply_color_material(model_instance, color)
 	else:
