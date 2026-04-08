@@ -238,7 +238,7 @@ func _spawn_piece(type: int, color: int, pos: Vector2i) -> void:
 		var piece_scales := [0.0, 1.8, 3.0, 2.8, 2.8, 3.5, 3.8]
 		var s: float = piece_scales[type]
 		model_instance.scale = Vector3(s, s, s)
-		model_instance.position.y = 0.1  # Slight lift above board
+		model_instance.position.y = 0.3  # Lift above board surface
 		# Apply color tint
 		_apply_color_material(model_instance, color)
 	else:
