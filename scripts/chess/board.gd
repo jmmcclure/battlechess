@@ -307,15 +307,15 @@ func _create_board_mesh() -> void:
 
 			var mat := StandardMaterial3D.new()
 			if (rank + file) % 2 == 0:
-				# Dark squares — polished dark wood/obsidian
-				mat.albedo_color = Color(0.08, 0.06, 0.05)
-				mat.metallic = 0.15
-				mat.roughness = 0.4
+				# Dark squares — dark walnut wood
+				mat.albedo_color = Color(0.12, 0.08, 0.05)
+				mat.metallic = 0.08
+				mat.roughness = 0.55
 			else:
-				# Light squares — warm ivory/marble
-				mat.albedo_color = Color(0.55, 0.48, 0.4)
-				mat.metallic = 0.05
-				mat.roughness = 0.35
+				# Light squares — aged sandstone
+				mat.albedo_color = Color(0.4, 0.34, 0.26)
+				mat.metallic = 0.03
+				mat.roughness = 0.6
 			square.material_override = mat
 
 			square.position = Vector3(

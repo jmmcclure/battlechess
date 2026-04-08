@@ -130,60 +130,36 @@ func _setup_environment() -> void:
 	frame.name = "BoardFrame"
 	add_child(frame)
 
-	# === Castle walls ===
-	var wall_color := Color(0.14, 0.12, 0.1)
+	# === Castle walls with stone block pattern ===
 	var wall_height: float = 12.0
-	var wall_thickness: float = 1.0
+	var wall_thickness: float = 1.5
 	var wall_distance: float = 18.0
 
-	# Back wall (behind black pieces)
-	_build_wall(Vector3(0, wall_height / 2.0, -wall_distance),
-		Vector3(wall_distance * 2.5, wall_height, wall_thickness), wall_color, "BackWall")
+	# Back wall (behind black pieces — negative Z)
+	_build_stone_wall(Vector3(0, wall_height / 2.0, -wall_distance),
+		Vector3(wall_distance * 2.5, wall_height, wall_thickness), "BackWall")
 	# Left wall
-	_build_wall(Vector3(-wall_distance, wall_height / 2.0, 0),
-		Vector3(wall_thickness, wall_height, wall_distance * 2.5), wall_color, "LeftWall")
+	_build_stone_wall(Vector3(-wall_distance, wall_height / 2.0, 0),
+		Vector3(wall_thickness, wall_height, wall_distance * 2.5), "LeftWall")
 	# Right wall
-	_build_wall(Vector3(wall_distance, wall_height / 2.0, 0),
-		Vector3(wall_thickness, wall_height, wall_distance * 2.5), wall_color, "RightWall")
+	_build_stone_wall(Vector3(wall_distance, wall_height / 2.0, 0),
+		Vector3(wall_thickness, wall_height, wall_distance * 2.5), "RightWall")
 
-	# === Wall sconce torches ===
-	var sconce_positions := [
-		# Back wall sconces
-		Vector3(-8, 5, -wall_distance + 1.0),
-		Vector3(0, 5, -wall_distance + 1.0),
-		Vector3(8, 5, -wall_distance + 1.0),
-		# Left wall sconces
-		Vector3(-wall_distance + 1.0, 5, -6),
-		Vector3(-wall_distance + 1.0, 5, 6),
-		# Right wall sconces
-		Vector3(wall_distance - 1.0, 5, -6),
-		Vector3(wall_distance - 1.0, 5, 6),
+	# === Flaming wall torches ===
+	var torch_positions := [
+		# Back wall
+		Vector3(-8, 5.5, -wall_distance + 1.2),
+		Vector3(0, 5.5, -wall_distance + 1.2),
+		Vector3(8, 5.5, -wall_distance + 1.2),
+		# Left wall
+		Vector3(-wall_distance + 1.2, 5.5, -6),
+		Vector3(-wall_distance + 1.2, 5.5, 6),
+		# Right wall
+		Vector3(wall_distance - 1.2, 5.5, -6),
+		Vector3(wall_distance - 1.2, 5.5, 6),
 	]
-	for i in range(sconce_positions.size()):
-		# Torch bracket (small box)
-		var bracket := MeshInstance3D.new()
-		var bracket_mesh := BoxMesh.new()
-		bracket_mesh.size = Vector3(0.3, 0.6, 0.3)
-		bracket.mesh = bracket_mesh
-		bracket.position = sconce_positions[i] - Vector3(0, 0.3, 0)
-		var bracket_mat := StandardMaterial3D.new()
-		bracket_mat.albedo_color = Color(0.15, 0.1, 0.05)
-		bracket_mat.metallic = 0.6
-		bracket_mat.roughness = 0.4
-		bracket.material_override = bracket_mat
-		bracket.name = "TorchBracket_%d" % i
-		add_child(bracket)
-
-		# Warm torch light
-		var torch := OmniLight3D.new()
-		torch.position = sconce_positions[i]
-		torch.light_color = Color(1.0, 0.6, 0.2)
-		torch.light_energy = 3.0
-		torch.omni_range = 16.0
-		torch.omni_attenuation = 1.3
-		torch.shadow_enabled = true
-		torch.name = "Sconce_%d" % i
-		add_child(torch)
+	for i in range(torch_positions.size()):
+		_build_torch(torch_positions[i], i)
 
 	# === Ceiling (dark, barely visible) ===
 	var ceiling := MeshInstance3D.new()
@@ -231,19 +207,133 @@ func _setup_environment() -> void:
 	add_child(fill_light)
 
 
-func _build_wall(pos: Vector3, size: Vector3, color: Color, wall_name: String) -> void:
+func _build_stone_wall(pos: Vector3, size: Vector3, wall_name: String) -> void:
+	# Main wall slab
 	var wall := MeshInstance3D.new()
 	var box := BoxMesh.new()
 	box.size = size
 	wall.mesh = box
 	wall.position = pos
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mat.roughness = 0.9
+	mat.albedo_color = Color(0.16, 0.14, 0.12)
+	mat.roughness = 0.92
 	mat.metallic = 0.02
 	wall.material_override = mat
 	wall.name = wall_name
 	add_child(wall)
+
+	# Stone block lines — horizontal mortar lines
+	var block_mat := StandardMaterial3D.new()
+	block_mat.albedo_color = Color(0.08, 0.07, 0.06)
+	block_mat.roughness = 1.0
+	var is_z_wall: bool = size.x > size.z  # back wall faces Z
+	var block_height: float = 1.2
+	var num_rows: int = int(size.y / block_height)
+	for row in range(num_rows):
+		var mortar := MeshInstance3D.new()
+		var mortar_mesh := BoxMesh.new()
+		if is_z_wall:
+			mortar_mesh.size = Vector3(size.x + 0.02, 0.06, size.z + 0.04)
+		else:
+			mortar_mesh.size = Vector3(size.x + 0.04, 0.06, size.z + 0.02)
+		mortar.mesh = mortar_mesh
+		mortar.position = Vector3(pos.x, pos.y - size.y / 2.0 + row * block_height + block_height, pos.z)
+		mortar.material_override = block_mat
+		mortar.name = "%s_Mortar_%d" % [wall_name, row]
+		add_child(mortar)
+
+
+func _build_torch(pos: Vector3, idx: int) -> void:
+	# Iron bracket — angled arm from wall
+	var bracket := MeshInstance3D.new()
+	var bracket_mesh := BoxMesh.new()
+	bracket_mesh.size = Vector3(0.12, 0.12, 0.8)
+	bracket.mesh = bracket_mesh
+	bracket.position = pos - Vector3(0, 0.6, 0)
+	bracket.rotation_degrees.x = -20
+	var iron_mat := StandardMaterial3D.new()
+	iron_mat.albedo_color = Color(0.08, 0.06, 0.05)
+	iron_mat.metallic = 0.7
+	iron_mat.roughness = 0.35
+	bracket.material_override = iron_mat
+	bracket.name = "TorchBracket_%d" % idx
+	add_child(bracket)
+
+	# Wooden torch handle
+	var handle := MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.06
+	cyl.bottom_radius = 0.08
+	cyl.height = 1.2
+	handle.mesh = cyl
+	handle.position = pos - Vector3(0, 0.1, 0)
+	var wood_mat := StandardMaterial3D.new()
+	wood_mat.albedo_color = Color(0.25, 0.15, 0.06)
+	wood_mat.roughness = 0.85
+	handle.material_override = wood_mat
+	handle.name = "TorchHandle_%d" % idx
+	add_child(handle)
+
+	# Torch head — wrapped cloth/pitch
+	var head := MeshInstance3D.new()
+	var head_mesh := CylinderMesh.new()
+	head_mesh.top_radius = 0.12
+	head_mesh.bottom_radius = 0.1
+	head_mesh.height = 0.3
+	head.mesh = head_mesh
+	head.position = pos + Vector3(0, 0.5, 0)
+	var pitch_mat := StandardMaterial3D.new()
+	pitch_mat.albedo_color = Color(0.1, 0.05, 0.02)
+	pitch_mat.roughness = 1.0
+	head.material_override = pitch_mat
+	head.name = "TorchHead_%d" % idx
+	add_child(head)
+
+	# Fire particles
+	var fire := GPUParticles3D.new()
+	fire.position = pos + Vector3(0, 0.75, 0)
+	fire.amount = 30
+	fire.lifetime = 0.8
+	fire.emitting = true
+	fire.name = "TorchFire_%d" % idx
+
+	var fire_mat := ParticleProcessMaterial.new()
+	fire_mat.direction = Vector3(0, 1, 0)
+	fire_mat.spread = 15.0
+	fire_mat.initial_velocity_min = 0.5
+	fire_mat.initial_velocity_max = 1.5
+	fire_mat.gravity = Vector3(0, 2.0, 0)
+	fire_mat.scale_min = 0.08
+	fire_mat.scale_max = 0.2
+	fire_mat.color = Color(1.0, 0.6, 0.1)
+	fire.process_material = fire_mat
+
+	var flame_mesh := SphereMesh.new()
+	flame_mesh.radius = 0.08
+	flame_mesh.height = 0.16
+	fire.draw_pass_1 = flame_mesh
+
+	# Emissive flame material
+	var flame_mat := StandardMaterial3D.new()
+	flame_mat.albedo_color = Color(1.0, 0.5, 0.05)
+	flame_mat.emission_enabled = true
+	flame_mat.emission = Color(1.0, 0.4, 0.05)
+	flame_mat.emission_energy_multiplier = 3.0
+	flame_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fire.material_override = flame_mat
+
+	add_child(fire)
+
+	# Warm flickering light
+	var light := OmniLight3D.new()
+	light.position = pos + Vector3(0, 0.8, 0)
+	light.light_color = Color(1.0, 0.55, 0.15)
+	light.light_energy = 3.5
+	light.omni_range = 16.0
+	light.omni_attenuation = 1.2
+	light.shadow_enabled = true
+	light.name = "TorchLight_%d" % idx
+	add_child(light)
 
 
 func _on_game_started(_mode: String) -> void:
