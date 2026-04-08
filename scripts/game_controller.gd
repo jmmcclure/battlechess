@@ -122,11 +122,11 @@ func _setup_environment() -> void:
 	for cx in [-1, 1]:
 		for cz in [-1, 1]:
 			var pillar := MeshInstance3D.new()
-			var cyl := CylinderMesh.new()
-			cyl.top_radius = 0.7
-			cyl.bottom_radius = 0.9
-			cyl.height = wall_height
-			pillar.mesh = cyl
+			var pillar_cyl := CylinderMesh.new()
+			pillar_cyl.top_radius = 0.7
+			pillar_cyl.bottom_radius = 0.9
+			pillar_cyl.height = wall_height
+			pillar.mesh = pillar_cyl
 			pillar.position = Vector3(cx * wall_dist, wall_height / 2.0, cz * wall_dist)
 			var pmat := StandardMaterial3D.new()
 			pmat.albedo_color = Color(0.14, 0.12, 0.1)
@@ -228,51 +228,6 @@ func _add_torch(pos: Vector3, idx: int) -> void:
 	light.shadow_enabled = false  # Too many shadow casters kills perf
 	light.name = "TorchLight_%d" % idx
 	add_child(light)
-
-	# === Ceiling (dark, barely visible) ===
-	var ceiling := MeshInstance3D.new()
-	var ceiling_plane := PlaneMesh.new()
-	ceiling_plane.size = Vector2(50, 50)
-	ceiling.mesh = ceiling_plane
-	ceiling.position.y = wall_height
-	ceiling.rotation_degrees.x = 180
-	var ceiling_mat := StandardMaterial3D.new()
-	ceiling_mat.albedo_color = Color(0.04, 0.03, 0.03)
-	ceiling_mat.roughness = 1.0
-	ceiling.material_override = ceiling_mat
-	ceiling.name = "Ceiling"
-	add_child(ceiling)
-
-	# === Stone pillars at corners ===
-	var pillar_positions := [
-		Vector3(-wall_distance, 0, -wall_distance),
-		Vector3(wall_distance, 0, -wall_distance),
-		Vector3(-wall_distance, 0, wall_distance),
-		Vector3(wall_distance, 0, wall_distance),
-	]
-	for i in range(pillar_positions.size()):
-		var pillar := MeshInstance3D.new()
-		var cyl := CylinderMesh.new()
-		cyl.top_radius = 0.6
-		cyl.bottom_radius = 0.8
-		cyl.height = wall_height
-		pillar.mesh = cyl
-		pillar.position = pillar_positions[i] + Vector3(0, wall_height / 2.0, 0)
-		var pillar_mat := StandardMaterial3D.new()
-		pillar_mat.albedo_color = Color(0.16, 0.14, 0.12)
-		pillar_mat.roughness = 0.8
-		pillar_mat.metallic = 0.05
-		pillar.material_override = pillar_mat
-		pillar.name = "Pillar_%d" % i
-		add_child(pillar)
-
-	# Fill light — subtle blue moonlight from behind camera
-	var fill_light := DirectionalLight3D.new()
-	fill_light.rotation_degrees = Vector3(-20, 180, 0)
-	fill_light.light_energy = 0.12
-	fill_light.light_color = Color(0.5, 0.6, 0.8)
-	fill_light.name = "MoonlightFill"
-	add_child(fill_light)
 
 
 func _on_game_started(_mode: String) -> void:
