@@ -304,11 +304,15 @@ func _create_board_mesh() -> void:
 
 			var mat := StandardMaterial3D.new()
 			if (rank + file) % 2 == 0:
-				mat.albedo_color = Color(0.15, 0.12, 0.1)  # Dark squares
+				# Dark squares — polished dark wood/obsidian
+				mat.albedo_color = Color(0.08, 0.06, 0.05)
+				mat.metallic = 0.15
+				mat.roughness = 0.4
 			else:
-				mat.albedo_color = Color(0.35, 0.3, 0.28)  # Light squares
-			mat.metallic = 0.1
-			mat.roughness = 0.8
+				# Light squares — warm ivory/marble
+				mat.albedo_color = Color(0.55, 0.48, 0.4)
+				mat.metallic = 0.05
+				mat.roughness = 0.35
 			square.material_override = mat
 
 			square.position = Vector3(
@@ -318,7 +322,6 @@ func _create_board_mesh() -> void:
 			)
 			square.name = "Square_%d_%d" % [file, rank]
 			add_child(square)
-	# No board border — was rendering as visible black bars
 
 
 func _highlight_moves() -> void:
@@ -381,7 +384,7 @@ func _adjust_model_height(model: Node3D) -> void:
 
 func _fit_model_to_square(model: Node3D, type: int) -> void:
 	# Target heights per piece type — how tall they should be in world units
-	var target_heights := [0.0, 2.0, 3.5, 3.0, 3.2, 4.0, 4.0]
+	var target_heights := [0.0, 2.0, 4.0, 3.8, 3.2, 4.5, 5.0]
 	var target_h: float = target_heights[type]
 
 	# Compute the combined AABB of all mesh children recursively

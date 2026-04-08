@@ -43,64 +43,96 @@ func _ready() -> void:
 
 
 func _setup_camera() -> void:
-	game_camera.position = Vector3(0, 14, 10)
-	game_camera.rotation_degrees = Vector3(-55, 0, 0)
-	game_camera.fov = 50.0
+	# More eye-level angle — looking across the board
+	game_camera.position = Vector3(0, 10, 16)
+	game_camera.rotation_degrees = Vector3(-30, 0, 0)
+	game_camera.fov = 45.0
 
 
 func _setup_lighting() -> void:
-	environment_light.rotation_degrees = Vector3(-45, -30, 0)
-	environment_light.light_energy = 0.6
+	environment_light.rotation_degrees = Vector3(-40, -25, 0)
+	environment_light.light_energy = 0.5
 	environment_light.shadow_enabled = true
+	environment_light.light_color = Color(1.0, 0.95, 0.9)
 
 	# Ambient lighting via WorldEnvironment
 	var env := WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color(0.03, 0.03, 0.05)
+	environment.background_color = Color(0.02, 0.02, 0.04)
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color(0.15, 0.12, 0.1)
-	environment.ambient_light_energy = 0.4
+	environment.ambient_light_color = Color(0.12, 0.1, 0.08)
+	environment.ambient_light_energy = 0.5
 	environment.tonemap_mode = 3  # ACES
 	environment.glow_enabled = true
-	environment.glow_intensity = 0.3
+	environment.glow_intensity = 0.4
+	environment.glow_bloom = 0.3
+	environment.ssao_enabled = true
+	environment.ssao_radius = 2.0
+	environment.ssao_intensity = 1.5
+	environment.ssr_enabled = true
 	environment.fog_enabled = true
-	environment.fog_light_color = Color(0.05, 0.04, 0.03)
-	environment.fog_density = 0.01
+	environment.fog_light_color = Color(0.06, 0.04, 0.03)
+	environment.fog_density = 0.005
 	env.environment = environment
 	env.name = "WorldEnvironment"
 	add_child(env)
 
 
 func _setup_environment() -> void:
-	# Torches around the board
+	# Torches around the board — warm flickering light
 	var torch_positions := [
-		Vector3(-9, 3, -9), Vector3(9, 3, -9),
-		Vector3(-9, 3, 9), Vector3(9, 3, 9),
+		Vector3(-10, 4, -10), Vector3(10, 4, -10),
+		Vector3(-10, 4, 10), Vector3(10, 4, 10),
+		Vector3(-10, 4, 0), Vector3(10, 4, 0),  # Mid-side torches
 	]
 	for i in range(torch_positions.size()):
 		var torch_light := OmniLight3D.new()
 		torch_light.position = torch_positions[i]
-		torch_light.light_color = Color(1.0, 0.7, 0.3)
-		torch_light.light_energy = 2.0
-		torch_light.omni_range = 12.0
-		torch_light.omni_attenuation = 1.5
+		torch_light.light_color = Color(1.0, 0.65, 0.25)
+		torch_light.light_energy = 2.5
+		torch_light.omni_range = 14.0
+		torch_light.omni_attenuation = 1.2
 		torch_light.shadow_enabled = true
 		torch_light.name = "Torch_%d" % i
 		add_child(torch_light)
 
-	# Floor beneath the board
+	# Fill light from behind camera — subtle blue moonlight
+	var fill_light := DirectionalLight3D.new()
+	fill_light.rotation_degrees = Vector3(-20, 180, 0)
+	fill_light.light_energy = 0.15
+	fill_light.light_color = Color(0.6, 0.7, 0.9)
+	fill_light.name = "FillLight"
+	add_child(fill_light)
+
+	# Stone floor beneath the board
 	var floor_mesh := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
-	plane.size = Vector2(40, 40)
+	plane.size = Vector2(50, 50)
 	floor_mesh.mesh = plane
-	floor_mesh.position.y = -0.2
+	floor_mesh.position.y = -0.1
 	var floor_mat := StandardMaterial3D.new()
-	floor_mat.albedo_color = Color(0.05, 0.04, 0.03)
-	floor_mat.roughness = 0.9
+	floor_mat.albedo_color = Color(0.06, 0.05, 0.04)
+	floor_mat.roughness = 0.85
+	floor_mat.metallic = 0.05
 	floor_mesh.material_override = floor_mat
 	floor_mesh.name = "Floor"
 	add_child(floor_mesh)
+
+	# Board frame — decorative border around the playing surface
+	var frame_size: float = 2.0 * 8 + 1.2  # SQUARE_SIZE * 8 + border
+	var frame := MeshInstance3D.new()
+	var frame_mesh := BoxMesh.new()
+	frame_mesh.size = Vector3(frame_size, 0.15, frame_size)
+	frame.mesh = frame_mesh
+	frame.position.y = -0.08
+	var frame_mat := StandardMaterial3D.new()
+	frame_mat.albedo_color = Color(0.18, 0.12, 0.06)
+	frame_mat.roughness = 0.5
+	frame_mat.metallic = 0.15
+	frame.material_override = frame_mat
+	frame.name = "BoardFrame"
+	add_child(frame)
 
 
 func _on_game_started(_mode: String) -> void:
