@@ -175,13 +175,15 @@ func execute_move(from: Vector2i, to: Vector2i, move_data: Dictionary) -> void:
 
 func finish_capture_move(attacker: ChessPiece, defender: ChessPiece) -> void:
 	## Called after battle animation completes.
+	# Save position before freeing defender
+	var target_pos: Vector2i = defender.board_position
 	defender.die_immediately()
 	defender.queue_free()
-	var to := defender.board_position if not (pieces.has(defender.board_position) and pieces[defender.board_position] == defender) else defender.board_position
+
 	pieces.erase(attacker.board_position)
-	attacker.move_to(defender.board_position)
+	attacker.move_to(target_pos)
 	await attacker.animation_finished
-	pieces[defender.board_position] = attacker
+	pieces[target_pos] = attacker
 	is_interactive = true
 
 
@@ -379,7 +381,7 @@ func _adjust_model_height(model: Node3D) -> void:
 
 func _fit_model_to_square(model: Node3D, type: int) -> void:
 	# Target heights per piece type — how tall they should be in world units
-	var target_heights := [0.0, 0.8, 1.6, 1.3, 1.4, 1.8, 2.0]
+	var target_heights := [0.0, 2.0, 3.5, 3.0, 3.2, 4.0, 4.0]
 	var target_h: float = target_heights[type]
 
 	# Compute the combined AABB of all mesh children recursively

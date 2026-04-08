@@ -79,9 +79,16 @@ func start_battle(attacker: ChessPiece, defender: ChessPiece) -> void:
 
 
 func _transition_to_battle_view() -> void:
+	if not is_instance_valid(current_attacker) or not is_instance_valid(current_defender):
+		return
+	if not current_attacker.is_inside_tree() or not current_defender.is_inside_tree():
+		return
+
 	# Find the midpoint between attacker and defender
-	var mid_point := (current_attacker.global_position + current_defender.global_position) / 2.0
-	var direction := (current_attacker.global_position - current_defender.global_position).normalized()
+	var atk_pos := current_attacker.position
+	var def_pos := current_defender.position
+	var mid_point := (atk_pos + def_pos) / 2.0
+	var direction := (atk_pos - def_pos).normalized()
 	var perpendicular := Vector3(-direction.z, 0, direction.x).normalized()
 
 	# Position battle camera to the side
@@ -167,8 +174,10 @@ func _play_battle_sequence() -> void:
 
 
 func _play_death_sequence() -> void:
+	if not is_instance_valid(current_defender) or not current_defender.is_inside_tree():
+		return
 	current_defender.play_death()
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(1.5 / GameManager.animation_speed).timeout
 
 
@@ -195,7 +204,11 @@ func _on_skip_requested() -> void:
 
 
 func _face_opponent(piece: ChessPiece, target: ChessPiece) -> void:
-	var direction := (target.global_position - piece.global_position).normalized()
+	if not is_instance_valid(piece) or not is_instance_valid(target):
+		return
+	if not piece.is_inside_tree() or not target.is_inside_tree():
+		return
+	var direction := (target.position - piece.position).normalized()
 	var angle := atan2(direction.x, direction.z)
 	var tween := create_tween()
 	tween.tween_property(piece, "rotation:y", angle, 0.2)
@@ -207,11 +220,10 @@ func _spawn_blood_effect(pos: Vector3) -> void:
 	# Create particle burst
 	var particles := GPUParticles3D.new()
 	particles.name = "BloodBurst"
-	particles.emitting = true
 	particles.one_shot = true
 	particles.amount = 50
 	particles.lifetime = 1.5
-	particles.global_position = pos + Vector3.UP * 0.5
+	particles.position = pos + Vector3.UP * 0.5
 
 	var mat := ParticleProcessMaterial.new()
 	mat.direction = Vector3(0, 1, 0)
@@ -230,6 +242,7 @@ func _spawn_blood_effect(pos: Vector3) -> void:
 	particles.draw_pass_1 = sphere
 
 	add_child(particles)
+	particles.emitting = true
 	# Auto-cleanup
 	get_tree().create_timer(3.0).timeout.connect(particles.queue_free)
 
@@ -244,7 +257,7 @@ func _spawn_blood_decal(pos: Vector3) -> void:
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(1.5, 1.5)
 	decal.mesh = plane
-	decal.global_position = pos
+	decal.position = pos
 
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(0.3, 0.0, 0.0, 0.8)
@@ -280,14 +293,14 @@ func _battle_pawn_vs_pawn() -> void:
 	current_attacker.play_attack()
 	await get_tree().create_timer(_t(0.5)).timeout
 	await _battle_step(current_attacker, Vector3(0, 0, -0.3), 0.2)
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 
 
 func _battle_pawn_vs_rook() -> void:
 	# David vs Goliath: dodge and stab through eye
 	await _battle_step(current_attacker, Vector3(0.5, 0, -0.5), 0.4)
 	await _battle_step(current_attacker, Vector3(-0.5, 0.8, -0.3), 0.3)
-	_spawn_blood_effect(current_defender.global_position + Vector3.UP * 1.5)
+	_spawn_blood_effect(current_defender.position + Vector3.UP * 1.5)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 
@@ -296,7 +309,7 @@ func _battle_pawn_vs_knight() -> void:
 	await _battle_step(current_attacker, Vector3(0, -0.3, -0.8), 0.4)
 	await _battle_step(current_attacker, Vector3(0, 0.3, 0), 0.2)
 	current_attacker.play_attack()
-	_spawn_blood_effect(current_defender.global_position + Vector3.UP)
+	_spawn_blood_effect(current_defender.position + Vector3.UP)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 
@@ -304,7 +317,7 @@ func _battle_pawn_vs_bishop() -> void:
 	# Charge through magic, decapitate
 	await _battle_step(current_attacker, Vector3(0, 0, -1.0), 0.5)
 	current_attacker.play_attack()
-	_spawn_blood_effect(current_defender.global_position + Vector3.UP * 1.2)
+	_spawn_blood_effect(current_defender.position + Vector3.UP * 1.2)
 	await get_tree().create_timer(_t(0.6)).timeout
 
 
@@ -312,7 +325,7 @@ func _battle_pawn_vs_queen() -> void:
 	# Desperate lunge, impale through chest
 	await get_tree().create_timer(_t(0.5)).timeout
 	await _battle_step(current_attacker, Vector3(0, 0, -1.2), 0.3)
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 
@@ -321,7 +334,7 @@ func _battle_pawn_vs_king() -> void:
 	await _battle_step(current_attacker, Vector3(0, 0, -0.8), 0.3)
 	await _battle_step(current_attacker, Vector3(0, 0.3, -0.3), 0.2)
 	current_attacker.play_attack()
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.8)).timeout
 
 # --- Rook attacks ---
@@ -330,7 +343,7 @@ func _battle_rook_vs_pawn() -> void:
 	# Stomp pawn flat
 	await _battle_step(current_attacker, Vector3(0, 0.5, -0.5), 0.4)
 	await _battle_step(current_attacker, Vector3(0, -0.5, -0.3), 0.15)
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 
@@ -339,7 +352,7 @@ func _battle_rook_vs_rook() -> void:
 	await _battle_step(current_attacker, Vector3(0, 0, -0.8), 0.5)
 	await get_tree().create_timer(_t(0.3)).timeout
 	current_attacker.play_attack()
-	_spawn_blood_effect(current_defender.global_position + Vector3.UP * 1.5)
+	_spawn_blood_effect(current_defender.position + Vector3.UP * 1.5)
 	await get_tree().create_timer(_t(0.8)).timeout
 
 
@@ -347,7 +360,7 @@ func _battle_rook_vs_knight() -> void:
 	# Catch horse mid-charge, crush
 	await get_tree().create_timer(_t(0.4)).timeout
 	await _battle_step(current_attacker, Vector3(0, 0, -0.5), 0.3)
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.7)).timeout
 
 
@@ -356,7 +369,7 @@ func _battle_rook_vs_bishop() -> void:
 	await _battle_step(current_attacker, Vector3(0, 0, -0.3), 0.3)
 	await _battle_step(current_attacker, Vector3(0, 0, -0.3), 0.3)
 	await _battle_step(current_attacker, Vector3(0, 0, -0.3), 0.2)
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 
@@ -365,7 +378,7 @@ func _battle_rook_vs_queen() -> void:
 	await _battle_step(current_attacker, Vector3(0, 0, -0.6), 0.4)
 	current_attacker.play_attack()
 	await get_tree().create_timer(_t(0.3)).timeout
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 
@@ -373,7 +386,7 @@ func _battle_rook_vs_king() -> void:
 	# Crumble onto king, bury in rubble
 	await _battle_step(current_attacker, Vector3(0, 0.8, -0.5), 0.5)
 	await _battle_step(current_attacker, Vector3(0, -0.8, -0.3), 0.2)
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.8)).timeout
 
 # --- Knight attacks ---
@@ -381,7 +394,7 @@ func _battle_rook_vs_king() -> void:
 func _battle_knight_vs_pawn() -> void:
 	# Lance charge, skewer and ride past
 	await _battle_step(current_attacker, Vector3(0, 0, -1.5), 0.4)
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 
@@ -389,17 +402,17 @@ func _battle_knight_vs_rook() -> void:
 	# Leap onto golem's back, drive sword into skull
 	await _battle_step(current_attacker, Vector3(0, 1.0, -0.5), 0.4)
 	await _battle_step(current_attacker, Vector3(0, -0.2, -0.3), 0.2)
-	_spawn_blood_effect(current_defender.global_position + Vector3.UP * 1.5)
+	_spawn_blood_effect(current_defender.position + Vector3.UP * 1.5)
 	await get_tree().create_timer(_t(0.6)).timeout
 
 
 func _battle_knight_vs_knight() -> void:
 	# Jousting clash, loser unhorsed and trampled
 	await _battle_step(current_attacker, Vector3(0, 0, -1.0), 0.3)
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.5)).timeout
 	await _battle_step(current_attacker, Vector3(0, 0, -0.5), 0.3)
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.3)).timeout
 
 
@@ -407,7 +420,7 @@ func _battle_knight_vs_bishop() -> void:
 	# Gallop circles, throw sword through bishop
 	await _battle_step(current_attacker, Vector3(1.0, 0, -0.5), 0.3)
 	await _battle_step(current_attacker, Vector3(-1.0, 0, -0.5), 0.3)
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 
@@ -416,14 +429,14 @@ func _battle_knight_vs_queen() -> void:
 	await _battle_step(current_attacker, Vector3(0, 0, -0.5), 0.3)
 	current_attacker.play_attack()
 	await get_tree().create_timer(_t(0.4)).timeout
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 
 func _battle_knight_vs_king() -> void:
 	# Ride king down, horse kicks crown off
 	await _battle_step(current_attacker, Vector3(0, 0, -1.2), 0.4)
-	_spawn_blood_effect(current_defender.global_position + Vector3.UP)
+	_spawn_blood_effect(current_defender.position + Vector3.UP)
 	await get_tree().create_timer(_t(0.3)).timeout
 	current_attacker.play_attack()
 	await get_tree().create_timer(_t(0.5)).timeout
@@ -437,17 +450,17 @@ func _battle_bishop_vs_pawn() -> void:
 	var tween := create_tween()
 	tween.tween_property(current_defender, "position:y", 1.5, 0.4)
 	await tween.finished
-	_spawn_blood_effect(current_defender.global_position)
-	_spawn_blood_effect(current_defender.global_position + Vector3.RIGHT * 0.5)
+	_spawn_blood_effect(current_defender.position)
+	_spawn_blood_effect(current_defender.position + Vector3.RIGHT * 0.5)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 
 func _battle_bishop_vs_rook() -> void:
 	# Lightning shatters golem
 	await get_tree().create_timer(_t(0.3)).timeout
-	_spawn_blood_effect(current_defender.global_position + Vector3.UP)
+	_spawn_blood_effect(current_defender.position + Vector3.UP)
 	await get_tree().create_timer(_t(0.3)).timeout
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 
@@ -457,7 +470,7 @@ func _battle_bishop_vs_knight() -> void:
 	var tween := create_tween()
 	tween.tween_property(current_defender, "rotation:z", 0.5, 0.3)
 	await tween.finished
-	_spawn_blood_effect(current_defender.global_position + Vector3.UP)
+	_spawn_blood_effect(current_defender.position + Vector3.UP)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 
@@ -467,16 +480,16 @@ func _battle_bishop_vs_bishop() -> void:
 	await _battle_step(current_attacker, Vector3(0, 0.2, -0.3), 0.3)
 	await get_tree().create_timer(_t(0.5)).timeout
 	await _battle_step(current_attacker, Vector3(0, 0, -0.3), 0.2)
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 
 func _battle_bishop_vs_queen() -> void:
 	# Dark tendrils bind, drain life
 	await get_tree().create_timer(_t(0.5)).timeout
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.8)).timeout
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.3)).timeout
 
 
@@ -484,7 +497,7 @@ func _battle_bishop_vs_king() -> void:
 	# Spectral blade through king
 	await get_tree().create_timer(_t(0.5)).timeout
 	await _battle_step(current_attacker, Vector3(0, 0.3, 0), 0.2)
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.7)).timeout
 
 # --- Queen attacks ---
@@ -493,11 +506,11 @@ func _battle_queen_vs_pawn() -> void:
 	# Dual blade flurry, cuts pawn to pieces
 	await _battle_step(current_attacker, Vector3(0, 0, -0.8), 0.3)
 	current_attacker.play_attack()
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.3)).timeout
-	_spawn_blood_effect(current_defender.global_position + Vector3.RIGHT * 0.3)
+	_spawn_blood_effect(current_defender.position + Vector3.RIGHT * 0.3)
 	await get_tree().create_timer(_t(0.3)).timeout
-	_spawn_blood_effect(current_defender.global_position + Vector3.LEFT * 0.3)
+	_spawn_blood_effect(current_defender.position + Vector3.LEFT * 0.3)
 	await get_tree().create_timer(_t(0.3)).timeout
 
 
@@ -505,7 +518,7 @@ func _battle_queen_vs_rook() -> void:
 	# Acrobatic assault, carve through stone joints
 	await _battle_step(current_attacker, Vector3(0.5, 0.5, -0.5), 0.3)
 	await _battle_step(current_attacker, Vector3(-0.5, -0.2, -0.3), 0.2)
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	current_attacker.play_attack()
 	await get_tree().create_timer(_t(0.5)).timeout
 
@@ -514,9 +527,9 @@ func _battle_queen_vs_knight() -> void:
 	# Sidestep lance, hamstring horse, behead rider
 	await _battle_step(current_attacker, Vector3(0.8, 0, 0), 0.2)
 	await _battle_step(current_attacker, Vector3(-0.8, 0, -0.8), 0.3)
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.3)).timeout
-	_spawn_blood_effect(current_defender.global_position + Vector3.UP * 1.2)
+	_spawn_blood_effect(current_defender.position + Vector3.UP * 1.2)
 	await get_tree().create_timer(_t(0.3)).timeout
 
 
@@ -526,7 +539,7 @@ func _battle_queen_vs_bishop() -> void:
 	await _battle_step(current_attacker, Vector3(0, 0, -0.3), 0.2)
 	await _battle_step(current_attacker, Vector3(0, 0, -0.3), 0.15)
 	current_attacker.play_attack()
-	_spawn_blood_effect(current_defender.global_position + Vector3.UP * 1.2)
+	_spawn_blood_effect(current_defender.position + Vector3.UP * 1.2)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 
@@ -538,8 +551,8 @@ func _battle_queen_vs_queen() -> void:
 	await _battle_step(current_attacker, Vector3(0.3, 0, -0.2), 0.15)
 	await get_tree().create_timer(_t(0.2)).timeout
 	await _battle_step(current_attacker, Vector3(-0.3, 0, -0.2), 0.15)
-	_spawn_blood_effect(current_defender.global_position)
-	_spawn_blood_effect(current_defender.global_position + Vector3.UP * 0.5)
+	_spawn_blood_effect(current_defender.position)
+	_spawn_blood_effect(current_defender.position + Vector3.UP * 0.5)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 
@@ -550,7 +563,7 @@ func _battle_queen_vs_king() -> void:
 	await get_tree().create_timer(_t(0.5)).timeout
 	await _battle_step(current_attacker, Vector3(0, 0, -0.3), 0.3)
 	await get_tree().create_timer(_t(0.5)).timeout
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 # --- King attacks ---
@@ -559,7 +572,7 @@ func _battle_king_vs_pawn() -> void:
 	# Single devastating greatsword cleave
 	await _battle_step(current_attacker, Vector3(0, 0.3, -0.5), 0.4)
 	await _battle_step(current_attacker, Vector3(0, -0.3, -0.3), 0.15)
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 
@@ -568,7 +581,7 @@ func _battle_king_vs_rook() -> void:
 	await _battle_step(current_attacker, Vector3(0, 0, -0.6), 0.3)
 	await _battle_step(current_attacker, Vector3(0, 0.5, 0), 0.3)
 	await _battle_step(current_attacker, Vector3(0, -0.5, -0.2), 0.15)
-	_spawn_blood_effect(current_defender.global_position + Vector3.UP)
+	_spawn_blood_effect(current_defender.position + Vector3.UP)
 	await get_tree().create_timer(_t(0.7)).timeout
 
 
@@ -577,7 +590,7 @@ func _battle_king_vs_knight() -> void:
 	await _battle_step(current_attacker, Vector3(0.8, 0, 0), 0.2)
 	await get_tree().create_timer(_t(0.3)).timeout
 	await _battle_step(current_attacker, Vector3(-0.8, 0, -0.8), 0.3)
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 
@@ -587,7 +600,7 @@ func _battle_king_vs_bishop() -> void:
 	await _battle_step(current_attacker, Vector3(0, 0, -0.3), 0.3)
 	await _battle_step(current_attacker, Vector3(0, 0, -0.3), 0.2)
 	current_attacker.play_attack()
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 
@@ -598,7 +611,7 @@ func _battle_king_vs_queen() -> void:
 	await _battle_step(current_attacker, Vector3(0, 0, -0.3), 0.2)
 	current_attacker.play_attack()
 	await get_tree().create_timer(_t(0.3)).timeout
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.5)).timeout
 
 
@@ -611,5 +624,5 @@ func _battle_generic() -> void:
 	# Fallback: simple attack animation
 	await _battle_step(current_attacker, Vector3(0, 0, -0.8), 0.4)
 	current_attacker.play_attack()
-	_spawn_blood_effect(current_defender.global_position)
+	_spawn_blood_effect(current_defender.position)
 	await get_tree().create_timer(_t(0.8)).timeout
