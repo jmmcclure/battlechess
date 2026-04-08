@@ -51,7 +51,7 @@ func _setup_camera() -> void:
 
 func _setup_lighting() -> void:
 	environment_light.rotation_degrees = Vector3(-40, -25, 0)
-	environment_light.light_energy = 0.5
+	environment_light.light_energy = 0.8
 	environment_light.shadow_enabled = true
 	environment_light.light_color = Color(1.0, 0.95, 0.9)
 
@@ -59,21 +59,20 @@ func _setup_lighting() -> void:
 	var env := WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color(0.02, 0.02, 0.04)
+	environment.background_color = Color(0.03, 0.03, 0.05)
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color(0.12, 0.1, 0.08)
-	environment.ambient_light_energy = 0.5
+	environment.ambient_light_color = Color(0.2, 0.17, 0.14)
+	environment.ambient_light_energy = 0.8
 	environment.tonemap_mode = 3  # ACES
 	environment.glow_enabled = true
-	environment.glow_intensity = 0.4
-	environment.glow_bloom = 0.3
+	environment.glow_intensity = 0.3
+	environment.glow_bloom = 0.2
 	environment.ssao_enabled = true
 	environment.ssao_radius = 2.0
-	environment.ssao_intensity = 1.5
-	environment.ssr_enabled = true
+	environment.ssao_intensity = 1.0
 	environment.fog_enabled = true
-	environment.fog_light_color = Color(0.06, 0.04, 0.03)
-	environment.fog_density = 0.005
+	environment.fog_light_color = Color(0.08, 0.06, 0.04)
+	environment.fog_density = 0.002
 	env.environment = environment
 	env.name = "WorldEnvironment"
 	add_child(env)
@@ -152,7 +151,7 @@ func _setup_environment() -> void:
 	# === Subtle fill light ===
 	var fill := DirectionalLight3D.new()
 	fill.rotation_degrees = Vector3(-15, 180, 0)
-	fill.light_energy = 0.1
+	fill.light_energy = 0.2
 	fill.light_color = Color(0.5, 0.6, 0.8)
 	fill.name = "MoonFill"
 	add_child(fill)
@@ -222,8 +221,8 @@ func _add_torch(pos: Vector3, idx: int) -> void:
 	var light := OmniLight3D.new()
 	light.position = pos + Vector3(0, 0.8, 0)
 	light.light_color = Color(1.0, 0.55, 0.15)
-	light.light_energy = 3.0
-	light.omni_range = 18.0
+	light.light_energy = 4.0
+	light.omni_range = 20.0
 	light.omni_attenuation = 1.3
 	light.shadow_enabled = false  # Too many shadow casters kills perf
 	light.name = "TorchLight_%d" % idx
