@@ -130,7 +130,15 @@ func _play_battle_sequence() -> void:
 	# Face each other
 	_face_opponent(current_attacker, current_defender)
 	_face_opponent(current_defender, current_attacker)
+	AudioManager.play_sfx_by_name("battle_grunt")
 	await get_tree().create_timer(0.3).timeout
+
+	# Play type-specific SFX
+	match attacker_type:
+		2: AudioManager.play_sfx_by_name("stone_step")      # Rook
+		3: AudioManager.play_sfx_by_name("sword_draw")       # Knight
+		4: AudioManager.play_sfx_by_name("magic_cast")       # Bishop
+		_: AudioManager.play_sfx_by_name("sword_draw")       # Pawn/Queen/King
 
 	# Play attack sequence based on matchup
 	match sequence_key:
@@ -176,9 +184,13 @@ func _play_battle_sequence() -> void:
 func _play_death_sequence() -> void:
 	if not is_instance_valid(current_defender) or not current_defender.is_inside_tree():
 		return
+	AudioManager.play_sfx_by_name("sword_clash")
 	current_defender.play_death()
 	_spawn_blood_effect(current_defender.position)
-	await get_tree().create_timer(1.5 / GameManager.animation_speed).timeout
+	AudioManager.play_sfx_by_name("death_scream")
+	await get_tree().create_timer(0.5 / GameManager.animation_speed).timeout
+	AudioManager.play_sfx_by_name("blood_splatter")
+	await get_tree().create_timer(1.0 / GameManager.animation_speed).timeout
 
 
 func _finish_battle_immediately() -> void:
